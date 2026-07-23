@@ -31,6 +31,7 @@ function showView(name) {
   });
   $('fab').hidden = name !== 'food';
   window.scrollTo(0, 0);
+  sessionStorage.setItem('gm.view', name);
 
   if (name === 'summary')  renderSummary();
   if (name === 'food')     renderFood();
@@ -526,4 +527,5 @@ function escapeHtml(s) {
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-showView('summary');
+const lastView = sessionStorage.getItem('gm.view');
+showView(VIEWS.includes(lastView) ? lastView : 'summary');
