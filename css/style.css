@@ -102,6 +102,9 @@ h2:first-of-type { margin-top: var(--s2); }
   -webkit-appearance: none; appearance: none;
   text-align: left;
 }
+.field input[type="date"]::-webkit-calendar-picker-indicator {
+  display: none;
+}
 .field input:focus-visible, .field select:focus-visible {
   outline: 2px solid var(--green); outline-offset: 1px; border-color: var(--green);
 }
