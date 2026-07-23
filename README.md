@@ -3,6 +3,11 @@
 Personal nutrition tracker. Runs entirely in the browser — no server, no PHP, no accounts.
 Data is stored in `localStorage` on this device only.
 
+## Live version
+
+Deployed via GitHub Pages at **https://shuaiyuduan.github.io/Groenemaaltijd./** — it redeploys
+automatically a minute or so after every push to `main`, no build step required.
+
 ## Two versions of the same app
 
 | File | Use it when |
