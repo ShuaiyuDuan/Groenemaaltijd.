@@ -141,7 +141,7 @@ function renderFood() {
     const rows = day.entries.filter(e => e.meal === meal.key);
     const sub = sumEntries(rows);
 
-    const body = rows.length ? rows.map(e => {
+    const entryRows = rows.map(e => {
       const v = entryTotals(e);
       return `
         <div class="entry">
@@ -153,8 +153,12 @@ function renderFood() {
                   data-fav="${e.id}" aria-label="Favourite">${HEART}</button>
           <button class="icon-btn" data-del="${e.id}" aria-label="Delete">${TRASH}</button>
         </div>`;
-    }).join('')
-      : `<button class="empty-meal" data-add="${meal.key}">Nothing logged — tap to add</button>`;
+    }).join('');
+
+    const addRow = `<button class="empty-meal" data-add="${meal.key}">` +
+      (rows.length ? '+ Add another' : 'Nothing logged — tap to add') + '</button>';
+
+    const body = entryRows + addRow;
 
     return `
       <div class="meal-head">
