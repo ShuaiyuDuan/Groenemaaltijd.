@@ -78,6 +78,9 @@ absorb the remainder instead, and the two always reconcile.
 `localStorage` is wiped if you clear browser data. **Settings → Export backup** downloads a JSON
 file; Import restores it. Do this occasionally.
 
+Don't use the app in a **Private Browsing** tab (Safari or otherwise) — private sessions use
+ephemeral storage by design, so nothing saved there is guaranteed to survive a reload.
+
 ## Open Food Facts
 
 Search hits their public API from the browser. It's volunteer-run, so the code debounces to
