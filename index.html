@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="google" content="notranslate">
+<title>Groenemaaltijd</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<p class="brand">
+  <span class="brand__mark" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="22" height="22">
+      <path d="M12 21c-4-2-7-6-7-11a7 7 0 0 1 14 0c0 5-3 9-7 11z" fill="var(--green)"/>
+      <path d="M12 20V7" stroke="var(--green-soft)" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>
+  </span>
+  <span>Groenemaaltijd</span>
+</p>
+
+<!-- ============ SUMMARY ============ -->
+<main class="wrap view" id="view-summary">
+  <h1>Summary</h1>
+
+  <div class="daybar">
+    <button class="stepper" id="prev-day" aria-label="Previous day">‹</button>
+    <span class="daybar__date" id="date-label">Today</span>
+    <button class="stepper" id="next-day" aria-label="Next day">›</button>
+  </div>
+
+  <div class="toggle">
+    <div>
+      <div class="toggle__label">Workout day</div>
+      <div class="toggle__hint">Switches to your training targets</div>
+    </div>
+    <label class="switch">
+      <input type="checkbox" id="workout">
+      <span class="switch__track"></span>
+      <span class="switch__thumb"></span>
+    </label>
+  </div>
+
+  <section class="rings" id="rings"></section>
+
+  <section class="deficit">
+    <div><div class="deficit__val" id="burned">–</div><div class="deficit__key">Burned</div></div>
+    <div><div class="deficit__val" id="eaten">–</div><div class="deficit__key">Eaten</div></div>
+    <div><div class="deficit__val" id="deficit">–</div><div class="deficit__key">Deficit</div></div>
+  </section>
+
+  <p class="notice" id="notice" hidden></p>
+</main>
+
+<!-- ============ FOOD ============ -->
+<main class="wrap view" id="view-food" hidden>
+  <h1>Food tracker</h1>
+
+  <div class="daybar">
+    <button class="stepper" id="f-prev" aria-label="Previous day">‹</button>
+    <span class="daybar__date" id="f-date">Today</span>
+    <button class="stepper" id="f-next" aria-label="Next day">›</button>
+  </div>
+
+  <div id="meals"></div>
+</main>
+
+<!-- ============ WEIGHT ============ -->
+<main class="wrap view" id="view-weight" hidden>
+  <h1>Weight tracker</h1>
+
+  <div class="card">
+    <h2>New measurement</h2>
+    <label class="field"><span>Date</span><input type="date" id="m-date"></label>
+    <div class="grid2">
+      <label class="field"><span>Weight (kg)</span>
+        <input type="number" id="m-weight" inputmode="decimal" step="0.1" min="20" max="300" placeholder="73.0"></label>
+      <label class="field"><span>Body fat (%)</span>
+        <input type="number" id="m-fat" inputmode="decimal" step="0.1" min="1" max="70" placeholder="24.0"></label>
+    </div>
+    <div class="grid2">
+      <label class="field"><span>BMI (calculated)</span><input id="m-bmi" readonly></label>
+      <label class="field"><span>BMR kcal/d (calculated)</span><input id="m-bmr" readonly></label>
+    </div>
+    <div class="row row--end">
+      <button class="btn" id="m-clear">Clear</button>
+      <button class="btn btn--primary" id="m-save">Save</button>
+    </div>
+    <p class="muted" style="margin-bottom:0">Height and age come from Settings.</p>
+  </div>
+
+  <div class="chart-head">
+    <h2 style="margin:0">Progress</h2>
+    <select id="range" style="padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);min-height:44px">
+      <option value="30">Last 4 weeks</option>
+      <option value="90" selected>Last 3 months</option>
+      <option value="180">Last 6 months</option>
+      <option value="9999">All time</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <div id="chart-holder"></div>
+    <div class="legend"><span class="lg-w">Weight (kg)</span><span class="lg-f">Body fat (%)</span></div>
+  </div>
+
+  <div class="card mlist" id="mlist"></div>
+</main>
+
+<!-- ============ SETTINGS ============ -->
+<main class="wrap view" id="view-settings" hidden>
+  <h1>Settings</h1>
+
+  <div class="card">
+    <h2>About you</h2>
+    <div class="grid2">
+      <label class="field"><span>Gender</span>
+        <select id="s-gender"><option value="f">Female</option><option value="m">Male</option></select></label>
+      <label class="field"><span>Birth year</span>
+        <input type="number" id="s-birth" inputmode="numeric" min="1920" max="2020"></label>
+    </div>
+    <label class="field"><span>Height (cm)</span>
+      <input type="number" id="s-height" inputmode="decimal" step="0.5" min="100" max="230"></label>
+    <p class="muted" id="s-derived"></p>
+  </div>
+
+  <div class="card" style="margin-top:var(--s4)">
+    <h2>Calories</h2>
+    <p class="muted">Expenditure is what you burn. Intake target is what you aim to eat.</p>
+    <div class="grid2">
+      <label class="field"><span>Expenditure — workout</span><input type="number" id="s-exp-w" inputmode="numeric"></label>
+      <label class="field"><span>Expenditure — rest</span><input type="number" id="s-exp-r" inputmode="numeric"></label>
+    </div>
+    <div class="grid2">
+      <label class="field"><span>Intake target — workout</span><input type="number" id="s-int-w" inputmode="numeric"></label>
+      <label class="field"><span>Intake target — rest</span><input type="number" id="s-int-r" inputmode="numeric"></label>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:var(--s4)">
+    <h2>Macros (grams per kg bodyweight)</h2>
+    <div class="grid2">
+      <label class="field"><span>Protein — workout</span><input type="number" id="s-p-w" inputmode="decimal" step="0.1"></label>
+      <label class="field"><span>Protein — rest</span><input type="number" id="s-p-r" inputmode="decimal" step="0.1"></label>
+    </div>
+    <div class="grid2">
+      <label class="field"><span>Carbs — workout</span><input type="number" id="s-c-w" inputmode="decimal" step="0.1"></label>
+      <label class="field"><span>Carbs — rest</span><input type="number" id="s-c-r" inputmode="decimal" step="0.1"></label>
+    </div>
+    <div class="grid2">
+      <label class="field"><span>Fat — workout</span><input type="number" id="s-f-w" inputmode="decimal" step="0.1"></label>
+      <label class="field"><span>Fat — rest</span><input type="number" id="s-f-r" inputmode="decimal" step="0.1"></label>
+    </div>
+    <div class="toggle" style="margin:var(--s3) 0 0">
+      <div>
+        <div class="toggle__label">Carbs fill the gap</div>
+        <div class="toggle__hint">Ignore the carb multiplier; use leftover calories instead</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="s-carbsauto">
+        <span class="switch__track"></span><span class="switch__thumb"></span>
+      </label>
+    </div>
+    <p class="notice" id="s-check" style="margin-top:var(--s3)"></p>
+    <div class="row row--end" style="margin-top:var(--s3)">
+      <button class="btn btn--primary" id="s-save">Save settings</button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:var(--s4)">
+    <h2>Backup</h2>
+    <p class="muted">Your data lives only in this browser. Clearing browser data erases it — export regularly.</p>
+    <div class="row">
+      <button class="btn" id="s-export">Export backup</button>
+      <button class="btn" id="s-import-btn">Import backup</button>
+      <input type="file" id="s-import" accept="application/json" hidden>
+    </div>
+  </div>
+</main>
+
+<!-- ============ ADD/EDIT FOOD MODAL ============ -->
+<div class="modal" id="modal" hidden>
+  <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal__head">
+      <h2 id="modal-title">Add food</h2>
+      <button class="icon-btn" id="modal-close" aria-label="Close">✕</button>
+    </div>
+
+    <label class="field"><span>Name — type 3+ letters to search Open Food Facts</span>
+      <input id="e-name" autocomplete="off" placeholder="e.g. Greek yoghurt"></label>
+    <div class="suggest" id="suggest" hidden></div>
+
+    <div class="grid2">
+      <label class="field"><span>Meal</span>
+        <select id="e-meal">
+          <option value="breakfast">Breakfast</option>
+          <option value="lunch">Lunch</option>
+          <option value="dinner">Dinner</option>
+          <option value="snacks">Snacks</option>
+        </select></label>
+      <label class="field"><span>Amount (g)</span>
+        <input type="number" id="e-amount" inputmode="decimal" step="1" min="0" value="100"></label>
+    </div>
+
+    <p class="muted" style="margin:0 0 var(--s1)">Values per 100 g</p>
+    <div class="grid2">
+      <label class="field"><span>Calories</span><input type="number" id="e-kcal" inputmode="decimal" step="0.1" min="0"></label>
+      <label class="field"><span>Protein (g)</span><input type="number" id="e-protein" inputmode="decimal" step="0.1" min="0"></label>
+    </div>
+    <div class="grid2">
+      <label class="field"><span>Carbs (g)</span><input type="number" id="e-carbs" inputmode="decimal" step="0.1" min="0"></label>
+      <label class="field"><span>Fat (g)</span><input type="number" id="e-fat" inputmode="decimal" step="0.1" min="0"></label>
+    </div>
+
+    <div class="preview" id="preview" hidden></div>
+
+    <div class="row row--end">
+      <button class="btn" id="e-cancel">Cancel</button>
+      <button class="btn btn--primary" id="e-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<button class="fab" id="fab" aria-label="Add food" hidden>+</button>
+
+<!-- ============ NAV ============ -->
+<nav class="nav">
+  <button data-view="summary" aria-current="page">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 9 9"/></svg>Summary</button>
+  <button data-view="food">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3v8M5 3v4a2 2 0 0 0 4 0V3M7 11v10M17 3c-1.5 2-2 4-2 6h4c0-2-.5-4-2-6zM17 9v12"/></svg>Food</button>
+  <button data-view="weight">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M5 20V10l7-5 7 5v10"/><path d="M9 20v-5h6v5"/></svg>Weight</button>
+  <button data-view="settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Settings</button>
+</nav>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
