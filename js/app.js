@@ -12,6 +12,7 @@ import {
 } from './calc.js';
 import { searchOFF, debounce } from './off.js';
 import { STARTER_FOODS } from './data.js';
+import { t, getLang, setLang, localeTag, applyStaticI18n } from './i18n.js';
 
 const $ = id => document.getElementById(id);
 let viewDate = todayKey();
@@ -22,8 +23,10 @@ let editingId = null;
    ========================================================= */
 
 const VIEWS = ['summary', 'food', 'weight', 'settings'];
+let currentView = 'summary';
 
 function showView(name) {
+  currentView = name;
   VIEWS.forEach(v => { $('view-' + v).hidden = v !== name; });
   document.querySelectorAll('.nav button').forEach(b => {
     if (b.dataset.view === name) b.setAttribute('aria-current', 'page');
@@ -43,11 +46,19 @@ document.querySelectorAll('.nav button').forEach(b => {
   b.addEventListener('click', () => showView(b.dataset.view));
 });
 
+document.querySelectorAll('.lang-switch button').forEach(b => {
+  b.addEventListener('click', () => {
+    setLang(b.dataset.lang);
+    applyStaticI18n();
+    showView(currentView);
+  });
+});
+
 function friendlyDate(key) {
-  if (key === todayKey()) return 'Today';
-  if (key === shiftKey(todayKey(), -1)) return 'Yesterday';
+  if (key === todayKey()) return t('today');
+  if (key === shiftKey(todayKey(), -1)) return t('yesterday');
   return new Date(key + 'T12:00:00')
-    .toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+    .toLocaleDateString(localeTag(), { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
 function stepDate(days) {
@@ -63,58 +74,60 @@ function stepDate(days) {
    ========================================================= */
 
 const RINGS = [
-  { key: 'kcal',    name: 'Calories', unit: 'kcal' },
-  { key: 'protein', name: 'Protein',  unit: 'g'    },
-  { key: 'carbs',   name: 'Carbs',    unit: 'g'    },
-  { key: 'fat',     name: 'Fat',      unit: 'g'    }
+  { key: 'kcal',    nameKey: 'ring_calories', unit: 'kcal' },
+  { key: 'protein', nameKey: 'ring_protein',  unit: 'g'    },
+  { key: 'carbs',   nameKey: 'ring_carbs',    unit: 'g'    },
+  { key: 'fat',     nameKey: 'ring_fat',      unit: 'g'    }
 ];
 const R = 46, C = 2 * Math.PI * R;
 
 function renderSummary() {
   const day = getDay(viewDate);
   const actual = sumEntries(day.entries);
-  const t = day.targets;
+  const targets = day.targets;
 
   $('date-label').textContent = friendlyDate(viewDate);
   $('next-day').disabled = viewDate >= todayKey();
   $('workout').checked = day.workout;
 
   $('rings').innerHTML = RINGS.map(r => {
-    const s = ringState(actual[r.key], t[r.key]);
+    const name = t(r.nameKey);
+    const s = ringState(actual[r.key], targets[r.key]);
     const offset = C - (s.pct / 100) * C;
     const sub = s.over
-      ? `${round(Math.abs(s.left))} ${r.unit} over`
-      : `${round(s.left)} ${r.unit} left`;
+      ? t('ring_over', { n: round(Math.abs(s.left)), unit: r.unit })
+      : t('ring_left', { n: round(s.left), unit: r.unit });
     return `
       <div class="ring-card ${s.over ? 'ring-card--over' : ''}">
         <svg class="ring" viewBox="0 0 110 110" role="img"
-             aria-label="${r.name}: ${round(actual[r.key])} of ${round(t[r.key])} ${r.unit}">
+             aria-label="${name}: ${round(actual[r.key])} of ${round(targets[r.key])} ${r.unit}">
           <circle class="ring__track" cx="55" cy="55" r="${R}" fill="none" stroke-width="9"/>
           <circle class="ring__fill" cx="55" cy="55" r="${R}" fill="none" stroke-width="9"
                   stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${offset}"
                   transform="rotate(-90 55 55)"/>
           <text class="ring__pct" x="55" y="52" text-anchor="middle">${round(s.raw)}%</text>
           <text class="ring__sub" x="55" y="66" text-anchor="middle">${sub}</text>
-          <text class="ring__sub" x="55" y="78" text-anchor="middle">of ${round(t[r.key])} ${r.unit}</text>
+          <text class="ring__sub" x="55" y="78" text-anchor="middle">${t('ring_of', { n: round(targets[r.key]), unit: r.unit })}</text>
         </svg>
-        <div class="ring-card__name">${r.name}</div>
+        <div class="ring-card__name">${name}</div>
       </div>`;
   }).join('');
 
-  const def = t.expenditure - actual.kcal;
-  $('burned').textContent = round(t.expenditure);
+  const def = targets.expenditure - actual.kcal;
+  $('burned').textContent = round(targets.expenditure);
   $('eaten').textContent  = round(actual.kcal);
   const d = $('deficit');
   d.textContent = (def >= 0 ? '' : '+') + round(Math.abs(def));
   d.className = 'deficit__val ' + (def >= 0 ? 'deficit__val--good' : 'deficit__val--bad');
 
-  const implied = impliedKcal(t), gap = round(implied - t.kcal);
+  const implied = impliedKcal(targets), gap = round(implied - targets.kcal);
   const n = $('notice');
   if (Math.abs(gap) > 50) {
     n.hidden = false;
-    n.innerHTML = `Your macro targets add up to <strong>${round(implied)} kcal</strong>, ` +
-      `but your intake target is <strong>${round(t.kcal)}</strong> (${gap > 0 ? '+' : ''}${gap}). ` +
-      `Adjust either in Settings, or turn on “Carbs fill the gap”.`;
+    n.innerHTML = t('notice_macro_mismatch', {
+      implied: round(implied), target: round(targets.kcal),
+      gap: (gap > 0 ? '+' : '') + gap
+    });
   } else n.hidden = true;
 }
 
@@ -150,19 +163,19 @@ function renderFood() {
             <div class="entry__macros">${round(v.kcal)} kcal · P ${round(v.protein,1)} · C ${round(v.carbs,1)} · F ${round(v.fat,1)}</div>
           </button>
           <button class="icon-btn icon-btn--fav ${isFavorite(e.name) ? 'is-on' : ''}"
-                  data-fav="${e.id}" aria-label="Favourite">${HEART}</button>
-          <button class="icon-btn" data-del="${e.id}" aria-label="Delete">${TRASH}</button>
+                  data-fav="${e.id}" aria-label="${t('fav_label')}">${HEART}</button>
+          <button class="icon-btn" data-del="${e.id}" aria-label="${t('delete_label')}">${TRASH}</button>
         </div>`;
     }).join('');
 
     const addRow = `<button class="empty-meal" data-add="${meal.key}">` +
-      (rows.length ? '+ Add another' : 'Nothing logged — tap to add') + '</button>';
+      (rows.length ? t('add_another') : t('nothing_logged')) + '</button>';
 
     const body = entryRows + addRow;
 
     return `
       <div class="meal-head">
-        <h2>${meal.label}</h2>
+        <h2>${t('meal_' + meal.key)}</h2>
         <span class="meal-head__sub">${rows.length ? round(sub.kcal) + ' kcal' : ''}</span>
       </div>
       ${body}`;
@@ -175,7 +188,7 @@ $('meals').addEventListener('click', e => {
   if (btn.dataset.add)  return openModal(null, btn.dataset.add);
   if (btn.dataset.edit) return openModal(btn.dataset.edit);
   if (btn.dataset.del) {
-    if (confirm('Delete this entry?')) { deleteEntry(viewDate, btn.dataset.del); renderFood(); }
+    if (confirm(t('confirm_delete_entry'))) { deleteEntry(viewDate, btn.dataset.del); renderFood(); }
     return;
   }
   if (btn.dataset.fav) {
@@ -194,7 +207,7 @@ $('fab').addEventListener('click', () => openModal(null, 'breakfast'));
 
 function openModal(id, mealKey) {
   editingId = id;
-  $('modal-title').textContent = id ? 'Edit food' : 'Add food';
+  $('modal-title').textContent = id ? t('modal_edit_food') : t('modal_add_food');
   $('suggest').hidden = true;
 
   if (id) {
@@ -244,9 +257,9 @@ $('e-save').addEventListener('click', () => {
   const name = $('e-name').value.trim();
   const amount = parseFloat($('e-amount').value);
   const kcal = parseFloat($('e-kcal').value);
-  if (!name)               return alert('Give the food a name.');
-  if (!amount || amount <= 0) return alert('Enter an amount in grams.');
-  if (isNaN(kcal))         return alert('Enter the calories per 100 g.');
+  if (!name)               return alert(t('alert_need_name'));
+  if (!amount || amount <= 0) return alert(t('alert_need_amount'));
+  if (isNaN(kcal))         return alert(t('alert_need_kcal'));
 
   const payload = {
     name, meal: $('e-meal').value, amount, unit: 'g',
@@ -274,15 +287,15 @@ const runSearch = debounce(async term => {
     .slice(0, 5);
 
   box.hidden = false;
-  box.innerHTML = renderSuggestions(local, 'Searching Open Food Facts…');
+  box.innerHTML = renderSuggestions(local, t('search_searching'));
 
   try {
     const remote = await searchOFF(term);
     box.innerHTML = renderSuggestions([...local, ...remote],
-      remote.length ? '' : 'No online matches — fill the values in yourself.');
+      remote.length ? '' : t('search_no_matches'));
   } catch (err) {
     console.error(err);
-    box.innerHTML = renderSuggestions(local, 'Could not reach Open Food Facts. Enter values manually.');
+    box.innerHTML = renderSuggestions(local, t('search_unreachable'));
   }
 }, 450);
 
@@ -345,8 +358,8 @@ $('m-save').addEventListener('click', () => {
   const date = $('m-date').value;
   const weightKg = parseFloat($('m-weight').value);
   const bodyFatPct = parseFloat($('m-fat').value);
-  if (!date)      return alert('Pick a date.');
-  if (!weightKg)  return alert('Enter your weight in kg.');
+  if (!date)      return alert(t('alert_pick_date'));
+  if (!weightKg)  return alert(t('alert_need_weight'));
 
   addMeasurement({ date, weightKg, bodyFatPct: isNaN(bodyFatPct) ? null : bodyFatPct });
   refreshTargets(viewDate);        // targets follow bodyweight
@@ -377,7 +390,7 @@ function renderChart() {
 
   if (data.length < 2) {
     holder.innerHTML = `<p class="muted" style="text-align:center;padding:var(--s6) 0">
-      Log at least two measurements to see the trend.</p>`;
+      ${t('chart_empty_hint')}</p>`;
     return;
   }
 
@@ -405,7 +418,7 @@ function renderChart() {
   }).join('');
 
   holder.innerHTML = `
-    <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Weight and body fat over time">
+    <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${t('chart_aria')}">
       ${grid}
       <path class="chart__wline" d="${path(d => d.weightKg, ws)}"/>
       ${fs ? `<path class="chart__fline" d="${path(d => d.bodyFatPct, fs)}"/>` : ''}
@@ -417,26 +430,26 @@ function renderChart() {
 function renderMeasurementList() {
   const list = [...state.measurements].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 12);
   $('mlist').innerHTML = list.length
-    ? `<h2 style="margin-top:0">Recent measurements</h2>` + list.map(m => `
+    ? `<h2 style="margin-top:0">${t('recent_measurements')}</h2>` + list.map(m => `
         <div class="mrow">
           <span class="mrow__date">${shortDate(m.date)}</span>
           <span><strong>${m.weightKg}</strong> kg</span>
           <span>${m.bodyFatPct != null ? m.bodyFatPct + ' %' : '—'}</span>
-          <button class="icon-btn" data-mdel="${m.date}" aria-label="Delete">${TRASH}</button>
+          <button class="icon-btn" data-mdel="${m.date}" aria-label="${t('delete_label')}">${TRASH}</button>
         </div>`).join('')
-    : `<p class="muted" style="margin:0">No measurements yet.</p>`;
+    : `<p class="muted" style="margin:0">${t('no_measurements_yet')}</p>`;
 }
 
 $('mlist').addEventListener('click', e => {
   const btn = e.target.closest('button[data-mdel]');
-  if (btn && confirm('Delete this measurement?')) {
+  if (btn && confirm(t('confirm_delete_measurement'))) {
     deleteMeasurement(btn.dataset.mdel);
     renderWeight();
   }
 });
 
 const shortDate = key =>
-  new Date(key + 'T12:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  new Date(key + 'T12:00:00').toLocaleDateString(localeTag(), { day: 'numeric', month: 'short' });
 
 /* =========================================================
    SETTINGS
@@ -457,9 +470,10 @@ function renderSettings() {
   $('s-carbsauto').checked = p.carbsAuto;
 
   const kg = latestWeight();
-  $('s-derived').textContent =
-    `Using ${kg} kg (latest measurement) · age ${currentAge()} · ` +
-    `BMI ${bmi(kg, p.heightCm)} · BMR ${bmr({ gender: p.gender, weightKg: kg, heightCm: p.heightCm, age: currentAge() })} kcal/day`;
+  $('s-derived').textContent = t('derived_text', {
+    kg, age: currentAge(), bmi: bmi(kg, p.heightCm),
+    bmr: bmr({ gender: p.gender, weightKg: kg, heightCm: p.heightCm, age: currentAge() })
+  });
 
   checkSettings();
 }
@@ -479,9 +493,10 @@ function checkSettings() {
     box.hidden = true; return;
   }
   box.hidden = false;
-  box.innerHTML = `On a workout day your macros come to <strong>${round(implied)} kcal</strong> ` +
-    `against an intake target of <strong>${round(pv('s-int-w'))}</strong> (${gap > 0 ? '+' : ''}${gap}). ` +
-    `That's allowed — the rings will just disagree.`;
+  box.innerHTML = t('settings_mismatch_notice', {
+    implied: round(implied), target: round(pv('s-int-w')),
+    gap: (gap > 0 ? '+' : '') + gap
+  });
 }
 
 Object.keys(S).forEach(id => $(id).addEventListener('input', checkSettings));
@@ -503,7 +518,7 @@ $('s-save').addEventListener('click', () => {
   save();
   refreshTargets(viewDate);       // today follows the new settings; past days keep their snapshot
   renderSettings();
-  alert('Settings saved. Past days keep the targets they were logged with.');
+  alert(t('alert_settings_saved'));
 });
 
 $('s-export').addEventListener('click', exportJSON);
@@ -511,13 +526,13 @@ $('s-import-btn').addEventListener('click', () => $('s-import').click());
 $('s-import').addEventListener('change', async e => {
   const file = e.target.files[0];
   if (!file) return;
-  if (!confirm('Importing replaces everything currently stored. Continue?')) { e.target.value = ''; return; }
+  if (!confirm(t('confirm_import'))) { e.target.value = ''; return; }
   try {
     importJSON(await file.text());
-    alert('Backup restored.');
+    alert(t('alert_backup_restored'));
     location.reload();
   } catch (err) {
-    alert('That file could not be read: ' + err.message);
+    alert(t('alert_backup_read_error', { msg: err.message }));
   }
   e.target.value = '';
 });
@@ -531,5 +546,6 @@ function escapeHtml(s) {
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+applyStaticI18n();
 const lastView = sessionStorage.getItem('gm.view');
 showView(VIEWS.includes(lastView) ? lastView : 'summary');

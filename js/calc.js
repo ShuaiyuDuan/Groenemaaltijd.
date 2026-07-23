@@ -2,10 +2,10 @@
    Everything derived on the fly, never cached, so it can't go stale. */
 
 export const MEALS = [
-  { key: 'breakfast', label: 'Breakfast' },
-  { key: 'lunch',     label: 'Lunch'     },
-  { key: 'dinner',    label: 'Dinner'    },
-  { key: 'snacks',    label: 'Snacks'    }
+  { key: 'breakfast' },
+  { key: 'lunch'     },
+  { key: 'dinner'    },
+  { key: 'snacks'    }
 ];
 
 export function entryTotals(e) {

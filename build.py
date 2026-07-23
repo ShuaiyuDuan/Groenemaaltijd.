@@ -11,7 +11,7 @@ html = (base / 'index.html').read_text(encoding='utf-8')
 css  = (base / 'css/style.css').read_text(encoding='utf-8')
 
 # concatenation order matters: no imports survive bundling
-order = ['data.js', 'storage.js', 'calc.js', 'off.js', 'app.js']
+order = ['data.js', 'storage.js', 'calc.js', 'off.js', 'i18n.js', 'app.js']
 
 def strip_modules(src):
     src = re.sub(r'^\s*import\s[\s\S]*?;\s*$', '', src, flags=re.M)
